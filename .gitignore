@@ -153,3 +153,5 @@ cython_debug/
 src/avfilter-8.dll
 *.dll
 *.exe
+src/downloaded/\[Source
+*.mp4
