@@ -1,5 +1,9 @@
 # Pyreideo
- Python downloader for video hosted on Reddit
+ Python downloader for videos hosted on Reddit
+
+# Get Started 
+- Download the latest version of ffmpeg and place the contents of the bin folder in the same place as the pyreideo.py file
+- open cmd and run from the command line
 
 # Usage 
 Scrape a subreddit with ````scrape````, or download a specific link with ````url-dl````
