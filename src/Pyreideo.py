@@ -3,9 +3,10 @@
 #Josh Engert, 2022
 
 import requests
-import subprocess
+import ffmpeg
 import os
 import typer
+
 
 app = typer.Typer()
 
@@ -52,23 +53,52 @@ def get_post_info(r):
     return info
 
 
+def audio_good(filename):
+    audio = ffmpeg.probe(str(filename), select_streams='a')
+    return audio["streams"] 
+
+
 def download_and_merge(p, merge_audio: bool = True):
     x = 0
+    if len(p) == 0:
+        print('No video found')
+        return
+    remove_string = " %:/,.\\[]<>*?"
+
+
     while x < len(p):
-        video = requests.get(p[x][1])
+        name = p[x][0][0:160].replace(' ', '_')
+        for c in name:
+            if c in remove_string:
+                output_name = name.replace(c, "")
+            else:
+                output_name = name
+        video = requests.get(p[x][1], headers = {'User-agent': 'Pyreideo CLI'})
         open('video' + str(x) + '.mp4', "wb").write(video.content)
         if merge_audio:
-            audio = requests.get(p[x][2])
-            open('audio' + str(x) + '.mp4', "wb").write(audio.content)
-            output_name = p[x][0][:10].replace(' ', '_')
+            audio = requests.get(p[x][2], headers = {'User-agent': 'Pyreideo CLI'})
+            open('audio' + str(x) + '.mp4', "wb").write(audio.content)                
+           
+
+            
             if os.path.exists('downloaded') == False:
                 os.mkdir('downloaded')
             try:
-                subprocess.run('ffmpeg -y -i video' + str(x) + '.mp4 -i audio' + str(x) + '.mp4 -c:v copy -c:a aac downloaded\\' + output_name + '.mp4')
-                os.remove('video' + str(x) + '.mp4')
-                os.remove('audio' + str(x) + '.mp4')
-            except:
-                print('ffmpeg error, files downloaded but not merged. Ensure ffmpeg is in the correct folder.')
+                input_video = ffmpeg.input('video' + str(x) + '.mp4')
+                
+                if audio_good('audio' + str(x) + '.mp4'):
+                    input_audio = ffmpeg.input('audio' + str(x) + '.mp4')
+                    ffmpeg.concat(input_video, input_audio, v=1, a=1).output('downloaded\\' + output_name + '.mp4').run()
+                    os.remove('video' + str(x) + '.mp4')
+                    os.remove('audio' + str(x) + '.mp4')
+                else:
+                    print('ALERT: ' + output_name + '.mp4 has no audio')
+                    os.replace('video' + str(x) + '.mp4', 'downloaded\\' + output_name + '.mp4') 
+                    os.remove('audio' + str(x) + '.mp4')
+            except ffmpeg._run.Error:
+                print('ffmpeg error, files downloaded but not merged.')
+        else:
+            os.replace('video' + str(x) + '.mp4', 'downloaded\\' + output_name + '.mp4')    
         x += 1
 
 
